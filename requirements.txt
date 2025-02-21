@@ -1,0 +1,8 @@
+streamlit
+streamlit_authenticator
+pymongo
+motor
+pandas
+pydantic
+langchain_core
+langchain_openai
