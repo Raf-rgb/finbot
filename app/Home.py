@@ -9,8 +9,12 @@ import streamlit_authenticator as stauth
 from enum import Enum
 from bson import ObjectId
 from datetime import datetime
+from utils.models import Movement
 from utils.database import get_collection
-from utils.utils import get_response_from_model
+from utils.utils import get_model, validate_or_add_category, validate_or_add_source, insert_movement
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 
@@ -23,9 +27,6 @@ st.set_page_config(
 for key in ["authenticator_config", "authenticator", "profile_data", "mongo_client"]:
     if key not in st.session_state:
         st.session_state[key] = None
-
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
 
 class AuthOptions(Enum):
     SIGN_IN = "Sign In"
@@ -95,36 +96,39 @@ def load_profile_data():
 def display_messages(message, chat_window):
     if message["user"] == "Finbot":
         with st.chat_message(message["user"], avatar=message["profile_picture"]):
-            with st.spinner("Finbot is typing..."):
-                model_response = get_response_from_model(message["message"])
+            if message["message"] is not None:
+                st.write(message["message"]["description"])
 
-                if model_response is not None:
-                    message["message"] = json.loads(model_response.model_dump_json())
+                response_df = pd.DataFrame(message["message"], index=[0])
 
-                    logging.info(f"Finbot message: {message['message']}")
-                    st.write(message["message"]["description"])
-
-                    response_df = pd.DataFrame(message["message"], index=[0])
-
-                    st.dataframe(
-                        response_df.drop(columns=["description"]),
-                        column_config= {
-                            "datetime": "📅 Fecha y hora",
-                            "name": "👤 Movimiento",
-                            "movement_type": "🔘 Tipo",
-                            "source": "💳 Fuente",
-                            "category": "🏷️ Categoría",
-                            "amount": "💲 Cantidad"
-                        },
-                        hide_index=True
-                    )
-                else:
-                    st.write(message["message"])
+                st.dataframe(
+                    response_df.drop(columns=["description"]),
+                    column_config= {
+                        "datetime": "📅 Fecha y hora",
+                        "name": "👤 Movimiento",
+                        "movement_type": "🔘 Tipo",
+                        "source": "💳 Fuente",
+                        "category": "🏷️ Categoría",
+                        "amount": "💲 Cantidad"
+                    },
+                    hide_index=True
+                )
+            else:
+                st.write("Sorry, I can't help you with that.")
     else:
         chat_window.chat_message(message["user"], avatar=message["profile_picture"]).write(message["message"])
 
 def show_chat_window():
     chat_window = st.container()
+
+    model  = get_model()
+    parser = PydanticOutputParser(pydantic_object=Movement)
+
+    prompt_template = PromptTemplate(
+        template="Answer the user query.\n{format_instructions}\n{query}\n",
+        input_variables=["query"],
+        partial_variables={"format_instructions": parser.get_format_instructions()},
+    )
 
     if prompt := st.chat_input("Di algo..."):
         display_messages(
@@ -137,18 +141,41 @@ def show_chat_window():
             chat_window
         )
 
+        prompt_and_model = prompt_template | model
+
+        output = prompt_and_model.invoke({"query": prompt})
+        
+        if asyncio.iscoroutine(output):
+            output = asyncio.run(output)
+
+        movement_data = parser.invoke(output)
+
+        if isinstance(movement_data, list):
+            movement_data = movement_data[0]
+
+        if not isinstance(movement_data, dict):
+            movement_data = movement_data.model_dump()
+
+        validated_data = asyncio.run(validate_or_add_category(movement_data, st.session_state.username))
+        asyncio.run(validate_or_add_source(validated_data, st.session_state.username))
+
+        final_movement = Movement(**validated_data)
+
+        if final_movement.datetime is None:
+            final_movement.datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        asyncio.run(insert_movement(final_movement, st.session_state.username))
+
         display_messages(
             {
                 "user": "Finbot",
-                "message": "Sorry, I can't help you with that yet.",
+                "message": json.loads(final_movement.model_dump_json()),
                 "profile_picture": "./assets/assistant_picture.png",
                 "timestamp": datetime.now().isoformat()
             },
             chat_window
         )
         
-    logging.info(f"Chat history: {st.session_state.chat_history}")
-
 def show_chat_page():
     if st.session_state.profile_data is None:
         load_profile_data()

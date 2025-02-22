@@ -4,5 +4,7 @@ pymongo
 motor
 pandas
 pydantic
+langchain
 langchain_core
+langchain_ollama
 langchain_openai

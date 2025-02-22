@@ -1,8 +1,6 @@
 import logging
 import streamlit as st
 
-from utils.utils import show_sidebar
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 
 st.set_page_config(
