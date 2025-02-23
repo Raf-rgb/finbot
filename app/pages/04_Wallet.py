@@ -112,4 +112,4 @@ def show_wallet_page():
 if "authentication_status" in st.session_state and st.session_state.authentication_status:
     show_wallet_page()
 else:
-    st.switch_page("./main.py")
+    st.switch_page("./Home.py")

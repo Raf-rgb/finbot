@@ -252,6 +252,7 @@ def show_chat_window():
     #         display_messages([st.session_state.user_input, st.session_state.model_output], chat_window)
 
 def show_chat_page():
+    st.set_option("client.showSidebarNavigation", True)
     if st.session_state.profile_data is None:
         load_profile_data()
 
@@ -268,7 +269,10 @@ def main():
     if st.session_state.authentication_status:
         show_chat_page()
     else:
+        st.set_option("client.showSidebarNavigation", False)
+        
         with loging_col:
+
             st.header("Welcome to")
             st.header("Finbot 🤖")
             st.divider()
