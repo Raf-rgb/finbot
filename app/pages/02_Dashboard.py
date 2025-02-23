@@ -96,7 +96,7 @@ def show_plots(movements: pd.DataFrame):
 
 
 def show_dashboard_page():
-    st.title("📊 Dashboard")
+    st.header("📊 Dashboard")
 
     st.divider()
 

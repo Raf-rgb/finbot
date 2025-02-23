@@ -254,7 +254,7 @@ def show_chat_page():
     if st.session_state.profile_data is None:
         load_profile_data()
 
-    st.title("🗨️ Chat")
+    st.header("🗨️ Chat")
 
     show_chat_window()
 

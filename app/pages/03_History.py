@@ -32,7 +32,7 @@ def get_all_movements():
         return None
 
 def show_history_page():
-    st.title("📋 History")
+    st.header("📋 History")
 
     movements = get_all_movements()
     

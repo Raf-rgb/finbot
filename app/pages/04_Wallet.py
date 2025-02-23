@@ -93,7 +93,7 @@ def show_form():
             st.error("Error adding the source")
 
 def show_wallet_page():
-    st.title("💰 Wallet")
+    st.header("💰 Wallet")
 
     col_wallet, col_add_source = st.tabs(["Wallets", "Add a new wallet"])
 
