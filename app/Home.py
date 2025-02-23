@@ -157,7 +157,7 @@ def display_messages(messages, chat_window):
                     )
 
                     if not st.session_state.movement_accepted:
-                        if st.button("Accept", type="primary"):
+                        if st.button("Accept", type='primary', icon="👍"):
                             movement = Movement(**message["message"])
                             movement = asyncio.run(validate_or_add_category(movement, st.session_state.username))
 
