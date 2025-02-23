@@ -9,9 +9,9 @@ import streamlit_authenticator as stauth
 from enum import Enum
 from bson import ObjectId
 from datetime import datetime
-from utils.models import Movement
+from utils.models import Movement, MovementType
 from utils.database import get_collection
-from utils.utils import get_model, validate_or_add_category, validate_or_add_source, insert_movement
+from utils.utils import get_model, get_sources, validate_or_add_category, update_source_balance, insert_movement
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -24,7 +24,11 @@ st.set_page_config(
     layout="wide"
 )
 
-for key in ["authenticator_config", "authenticator", "profile_data", "mongo_client"]:
+if "movement_accepted" not in st.session_state:
+    st.session_state.movement_accepted = False
+
+for key in ["authenticator_config", "authenticator", "profile_data", 
+            "movement", "user_input", "model_output"]:
     if key not in st.session_state:
         st.session_state[key] = None
 
@@ -93,7 +97,7 @@ def sign_in():
 def load_profile_data():
     st.session_state.profile_data = st.session_state.authenticator_config["credentials"]["usernames"][st.session_state.username]
 
-def display_messages(message, chat_window):
+def display_message(message, chat_window):
     if message["user"] == "Finbot":
         with st.chat_message(message["user"], avatar=message["profile_picture"]):
             if message["message"] is not None:
@@ -113,69 +117,139 @@ def display_messages(message, chat_window):
                     },
                     hide_index=True
                 )
+
+                if not st.session_state.movement_accepted:
+                    if st.button("Accept"):
+                        movement = Movement(**message["message"])
+                        movement = asyncio.run(validate_or_add_category(movement, st.session_state.username))
+
+                        asyncio.run(insert_movement(movement, st.session_state.username))
+                        asyncio.run(update_source_balance(movement, st.session_state.username))
+
+                        st.toast("Movement accepted!", icon="👍")
+                        st.session_state.movement_accepted = True
             else:
                 st.write("Sorry, I can't help you with that.")
     else:
         chat_window.chat_message(message["user"], avatar=message["profile_picture"]).write(message["message"])
+            
+def display_messages(messages, chat_window):
+    for message in messages:
+        if message["user"] == "Finbot":
+            with st.chat_message(message["user"], avatar=message["profile_picture"]):
+                if message["message"] is not None:
+                    st.write(message["message"]["description"])
+
+                    response_df = pd.DataFrame(message["message"], index=[0])
+
+                    st.dataframe(
+                        response_df.drop(columns=["description"]),
+                        column_config= {
+                            "datetime": "📅 Fecha y hora",
+                            "name": "👤 Movimiento",
+                            "movement_type": "🔘 Tipo",
+                            "source": "💳 Fuente",
+                            "category": "🏷️ Categoría",
+                            "amount": "💲 Cantidad"
+                        },
+                        hide_index=True
+                    )
+
+                    if not st.session_state.movement_accepted:
+                        if st.button("Accept"):
+                            movement = Movement(**message["message"])
+                            movement = asyncio.run(validate_or_add_category(movement, st.session_state.username))
+
+                            asyncio.run(insert_movement(movement, st.session_state.username))
+                            asyncio.run(update_source_balance(movement, st.session_state.username))
+
+                            st.session_state.movement_accepted = True
+                            st.toast("Movement accepted!", icon="👍")
+                            st.rerun()
+                else:
+                    st.write("Sorry, I can't help you with that.")
+        else:
+            chat_window.chat_message(message["user"], avatar=message["profile_picture"]).write(message["message"])
 
 def show_chat_window():
     chat_window = st.container()
 
-    model  = get_model()
-    parser = PydanticOutputParser(pydantic_object=Movement)
+    model        = get_model()
+    parser       = PydanticOutputParser(pydantic_object=Movement)
+    user_sources = asyncio.run(get_sources(st.session_state.username))
 
     prompt_template = PromptTemplate(
-        template="Answer the user query.\n{format_instructions}\n{query}\n",
+        template="Answer the user query. Identify the money source according to the user sources: {user_sources}\n{format_instructions}\n{query}\n",
         input_variables=["query"],
-        partial_variables={"format_instructions": parser.get_format_instructions()},
+        partial_variables={"format_instructions": parser.get_format_instructions(), "user_sources": user_sources},
     )
 
     if prompt := st.chat_input("Di algo..."):
-        display_messages(
-            {
-                "user": st.session_state.profile_data["first_name"],
-                "message": prompt,
-                "profile_picture": st.session_state.profile_data["picture"],
-                "timestamp": datetime.now().isoformat()
-            },
-            chat_window
-        )
-
-        prompt_and_model = prompt_template | model
-
-        output = prompt_and_model.invoke({"query": prompt})
+        st.session_state.user_input = {
+            "user": st.session_state.profile_data["first_name"],
+            "message": prompt,
+            "profile_picture": st.session_state.profile_data["picture"],
+            "timestamp": datetime.now().isoformat()
+        }
         
-        if asyncio.iscoroutine(output):
-            output = asyncio.run(output)
+        st.session_state.movement_accepted = False
 
-        movement_data = parser.invoke(output)
+    if st.session_state.user_input is not None:
+        display_message(st.session_state.user_input, chat_window)
 
-        if isinstance(movement_data, list):
-            movement_data = movement_data[0]
+        if st.session_state.model_output is None:
+            with chat_window:
+                with st.spinner("Finbot is typing..."):
+                    prompt_and_model = prompt_template | model
 
-        if not isinstance(movement_data, dict):
-            movement_data = movement_data.model_dump()
+                    output = prompt_and_model.invoke({"query": prompt})
+                    
+                    if asyncio.iscoroutine(output):
+                        output = asyncio.run(output)
 
-        validated_data = asyncio.run(validate_or_add_category(movement_data, st.session_state.username))
-        asyncio.run(validate_or_add_source(validated_data, st.session_state.username))
+                    movement_data = parser.invoke(output)
 
-        final_movement = Movement(**validated_data)
+                    if isinstance(movement_data, list):
+                        movement_data = movement_data[0]
 
-        if final_movement.datetime is None:
-            final_movement.datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    if not isinstance(movement_data, dict):
+                        movement_data = movement_data.model_dump()
+
+                    movement = Movement(**movement_data)
+
+                    if movement.datetime is None:
+                        movement.datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                    if movement.movement_type == MovementType.INCOME:
+                        movement.category = MovementType.INCOME
+
+                    st.session_state.model_output = {
+                        "user": "Finbot",
+                        "message": json.loads(movement.model_dump_json()),
+                        "profile_picture": "./assets/assistant_picture.png",
+                        "timestamp": datetime.now().isoformat()
+                    }
+
+                    st.rerun()
+        else:
+            with st.spinner("Finbot is processing..."):
+                display_message(st.session_state.model_output, chat_window)
+
+        if st.session_state.movement_accepted:
+            st.session_state.user_input = None
+            st.rerun()
+
+    if st.session_state.movement_accepted and st.session_state.model_output is not None:
+        with st.status("Proccesing movement...", expanded=True):
+            st.success("Movement accepted! 🎉")
+            display_message(st.session_state.model_output, chat_window)
         
-        asyncio.run(insert_movement(final_movement, st.session_state.username))
+        st.session_state.model_output = None
 
-        display_messages(
-            {
-                "user": "Finbot",
-                "message": json.loads(final_movement.model_dump_json()),
-                "profile_picture": "./assets/assistant_picture.png",
-                "timestamp": datetime.now().isoformat()
-            },
-            chat_window
-        )
-        
+    # if st.session_state.user_input is not None and st.session_state.model_output is not None:
+    #     with st.spinner("Processing..."):
+    #         display_messages([st.session_state.user_input, st.session_state.model_output], chat_window)
+
 def show_chat_page():
     if st.session_state.profile_data is None:
         load_profile_data()
