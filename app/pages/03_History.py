@@ -1,7 +1,6 @@
 import logging
 import pandas as pd
 import streamlit as st
-from datetime import datetime
 
 from utils.database import get_collection
 
@@ -21,7 +20,11 @@ def get_all_movements():
             st.secrets.db_collections.finance_collection_name
         )
 
-        all_movements = finance_collection.find()
+        all_movements = finance_collection.find(
+            {
+                "username": st.session_state.username
+            }
+        )
 
         if all_movements:
             return pd.DataFrame(list(all_movements))
