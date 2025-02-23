@@ -226,7 +226,7 @@ def show_chat_window():
                     st.session_state.model_output = {
                         "user": "Finbot",
                         "message": json.loads(movement.model_dump_json()),
-                        "profile_picture": "/app/assets/assistant_picture.png",
+                        "profile_picture": "https://github.com/Raf-rgb/finbot/blob/main/app/assets/assistant_picture.png",
                         "timestamp": datetime.now().isoformat()
                     }
 
