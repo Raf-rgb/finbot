@@ -74,25 +74,25 @@ def show_metrics_by_movement_type(movements: pd.DataFrame, movement_type: Moveme
         )
 
 @st.fragment(run_every=10)
-def show_metrics_cards():
-    show_metrics_by_movement_type(st.session_state.movements, MovementType.EXPENSE)
-    show_metrics_by_movement_type(st.session_state.movements, MovementType.INCOME)
+def show_metrics_cards(movements: pd.DataFrame):
+    show_metrics_by_movement_type(movements, MovementType.EXPENSE)
+    show_metrics_by_movement_type(movements, MovementType.INCOME)
 
 @st.fragment(run_every=10)
-def show_plots():
+def show_plots(movements: pd.DataFrame):
     col_1, col_2 = st.columns(2)
 
     with col_1:
-        st.plotly_chart(plot_pie_movement_by_category(st.session_state.movements, MovementType.EXPENSE))
-        st.plotly_chart(plot_total_movements_by_month(st.session_state.movements, MovementType.EXPENSE))
-        st.plotly_chart(plot_line_total_movements_by_month(st.session_state.movements, MovementType.EXPENSE))
-        st.plotly_chart(plot_bar_movement_by_source_name(st.session_state.movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_pie_movement_by_category(movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_total_movements_by_month(movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_line_total_movements_by_month(movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_bar_movement_by_source_name(movements, MovementType.EXPENSE))
     
     with col_2:
-        st.plotly_chart(plot_pie_movement_by_category(st.session_state.movements, MovementType.INCOME))
-        st.plotly_chart(plot_total_movements_by_month(st.session_state.movements, MovementType.INCOME))
-        st.plotly_chart(plot_line_total_movements_by_month(st.session_state.movements, MovementType.INCOME))
-        st.plotly_chart(plot_bar_movement_by_source_name(st.session_state.movements, MovementType.INCOME))
+        st.plotly_chart(plot_pie_movement_by_category(movements, MovementType.INCOME))
+        st.plotly_chart(plot_total_movements_by_month(movements, MovementType.INCOME))
+        st.plotly_chart(plot_line_total_movements_by_month(movements, MovementType.INCOME))
+        st.plotly_chart(plot_bar_movement_by_source_name(movements, MovementType.INCOME))
 
 
 def show_dashboard_page():
@@ -100,14 +100,13 @@ def show_dashboard_page():
 
     st.divider()
 
-    if st.session_state.movements is None:
-        st.session_state.movements = get_all_movements()
+    movements = get_all_movements()
     
-    if st.session_state.movements is None or st.session_state.movements.empty:
+    if movements is None or movements.empty:
         st.warning("No movements found")
     else:
-        show_metrics_cards()
-        show_plots()
+        show_metrics_cards(movements)
+        show_plots(movements)
 
 if "authentication_status" in st.session_state and st.session_state.authentication_status:
     show_dashboard_page()

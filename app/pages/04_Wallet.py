@@ -86,7 +86,8 @@ def show_form():
                 }
             )
 
-            st.success("Source added to wallet successfully!")
+            st.toast("Source added successfully", icon="🎉")
+            st.rerun()
         except Exception as e:
             logging.error(f"Error adding the source to the wallet: {e}")
             st.error("Error adding the source")
