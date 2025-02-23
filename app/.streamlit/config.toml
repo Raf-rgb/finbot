@@ -3,6 +3,3 @@ primaryColor="#ffbd7e"
 backgroundColor="#000000"
 secondaryBackgroundColor="#0e0e0e"
 textColor="#ffffff"
-
-[client]
-showSidebarNavigation=false

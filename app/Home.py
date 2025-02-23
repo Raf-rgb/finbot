@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - 
 st.set_page_config(
     page_title="Sign In | Finbot 🤖",
     page_icon="🤖",
+    initial_sidebar_state="collapsed",
     layout="wide"
 )
 
@@ -89,8 +90,6 @@ def sign_in():
         st.session_state.initial_sidebar_state = "expanded"
         update_authenticator()
         st.rerun()
-    elif st.session_state.authentication_status is None:
-        st.warning("Please log in")
     elif st.session_state.authentication_status is False:
         st.error("Username/Password incorrect")
 
@@ -252,7 +251,6 @@ def show_chat_window():
     #         display_messages([st.session_state.user_input, st.session_state.model_output], chat_window)
 
 def show_chat_page():
-    st.set_option("client.showSidebarNavigation", True)
     if st.session_state.profile_data is None:
         load_profile_data()
 
@@ -264,19 +262,15 @@ def main():
     if st.session_state.authenticator is None:
         load_authenticator()
         
-    _, _, loging_col, _, _ = st.columns([0.1, 0.1, 0.6, 0.1, 0.1])
+    _, _, loging_col, _, _ = st.columns([0.2, 0.2, 0.2, 0.2, 0.2])
     
     if st.session_state.authentication_status:
         show_chat_page()
-    else:
-        st.set_option("client.showSidebarNavigation", False)
-        
+    else:        
         with loging_col:
 
-            st.header("Welcome to")
-            st.header("Finbot 🤖")
+            st.title("Welcome to Finbot 🤖")
             st.divider()
-            st.subheader("Your personal finance bot")
             st.text("Please sign in with your Google account to continue.")
             sign_in()
 
