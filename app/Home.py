@@ -1,3 +1,4 @@
+import pytz
 import yaml
 import json
 import asyncio
@@ -218,7 +219,7 @@ def show_chat_window():
                     movement = Movement(**movement_data)
 
                     if movement.datetime is None:
-                        movement.datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        movement.datetime = datetime.now(tz=pytz.timezone('America/Mexico_City')).strftime("%Y-%m-%d %H:%M:%S")
 
                     if movement.movement_type == MovementType.INCOME:
                         movement.category = MovementType.INCOME
