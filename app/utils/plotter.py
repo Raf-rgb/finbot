@@ -157,3 +157,41 @@ def plot_total_movements_by_month(df: pd.DataFrame, movement_type:MovementType):
     except Exception as e:
         logging.error(f"Error plotting the total movements by month: {e}")
         return None
+    
+def plot_pie_movement_by_category(df: pd.DataFrame, movement_type:MovementType):
+    try:
+        total_movements_by_category = df[df["movement_type"] == movement_type].groupby("category")["amount"].sum().reset_index()
+
+        if total_movements_by_category is not None:
+            fig = px.pie(
+                total_movements_by_category,
+                values="amount",
+                names="category",
+                title=f"{movement_type.value} by category"
+            )
+
+            return fig
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error plotting the movements by category: {e}")
+        return None
+
+def plot_bar_movement_by_source_name(df: pd.DataFrame, movement_type:MovementType):
+    try:
+        total_movements_by_source_name = df[df["movement_type"] == movement_type].groupby("source_name")["amount"].sum().reset_index()
+
+        if total_movements_by_source_name is not None:
+            fig = px.bar(
+                total_movements_by_source_name,
+                x="source_name",
+                y="amount",
+                title=f"{movement_type.value} by source name",
+                labels={"amount": "Amount ($)", "source_name": "Source Name"}
+            )
+
+            return fig
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error plotting the movements by source name: {e}")

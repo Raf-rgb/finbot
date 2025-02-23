@@ -83,12 +83,17 @@ def show_plots():
     col_1, col_2 = st.columns(2)
 
     with col_1:
+        st.plotly_chart(plot_pie_movement_by_category(st.session_state.movements, MovementType.EXPENSE))
         st.plotly_chart(plot_total_movements_by_month(st.session_state.movements, MovementType.EXPENSE))
-        st.plotly_chart(plot_total_movements_by_month(st.session_state.movements, MovementType.INCOME))
+        st.plotly_chart(plot_line_total_movements_by_month(st.session_state.movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_bar_movement_by_source_name(st.session_state.movements, MovementType.EXPENSE))
     
     with col_2:
-        st.plotly_chart(plot_line_total_movements_by_month(st.session_state.movements, MovementType.EXPENSE))
+        st.plotly_chart(plot_pie_movement_by_category(st.session_state.movements, MovementType.INCOME))
+        st.plotly_chart(plot_total_movements_by_month(st.session_state.movements, MovementType.INCOME))
         st.plotly_chart(plot_line_total_movements_by_month(st.session_state.movements, MovementType.INCOME))
+        st.plotly_chart(plot_bar_movement_by_source_name(st.session_state.movements, MovementType.INCOME))
+
 
 def show_dashboard_page():
     st.title("📊 Dashboard")

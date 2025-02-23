@@ -148,7 +148,8 @@ def display_messages(messages, chat_window):
                             "datetime": "📅 Fecha y hora",
                             "name": "👤 Movimiento",
                             "movement_type": "🔘 Tipo",
-                            "source": "💳 Fuente",
+                            "source_name": "💳 Fuente",
+                            "source_type": "🌀 Tipo",
                             "category": "🏷️ Categoría",
                             "amount": "💲 Cantidad"
                         },
