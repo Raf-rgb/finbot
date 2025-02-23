@@ -32,7 +32,7 @@ def get_all_movements():
         return None
 
 def show_history_page():
-    st.header("📋 History")
+    st.subheader("📋 History")
 
     movements = get_all_movements()
     
@@ -84,7 +84,7 @@ def show_history_page():
                     logging.info(f"Filtering movements from {init_date} to {end_date}")
                     movements = movements[(movements["datetime"].dt.date >= init_date) & (movements["datetime"].dt.date <= end_date)]
 
-        st.subheader("📜 Movements")
+        st.text("📜 Movements")
         st.dataframe(
             movements.drop(columns=["_id", "username"]),
             column_config= {
