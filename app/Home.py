@@ -119,7 +119,7 @@ def display_message(message, chat_window):
                 )
 
                 if not st.session_state.movement_accepted:
-                    if st.button("Accept"):
+                    if st.button("Accept", type='primary', icon="👍"):
                         movement = Movement(**message["message"])
                         movement = asyncio.run(validate_or_add_category(movement, st.session_state.username))
 
@@ -132,45 +132,6 @@ def display_message(message, chat_window):
                 st.write("Sorry, I can't help you with that.")
     else:
         chat_window.chat_message(message["user"], avatar=message["profile_picture"]).write(message["message"])
-            
-def display_messages(messages, chat_window):
-    for message in messages:
-        if message["user"] == "Finbot":
-            with st.chat_message(message["user"], avatar=message["profile_picture"]):
-                if message["message"] is not None:
-                    st.write(message["message"]["description"])
-
-                    response_df = pd.DataFrame(message["message"], index=[0])
-
-                    st.dataframe(
-                        response_df.drop(columns=["description"]),
-                        column_config= {
-                            "datetime": "📅 Fecha y hora",
-                            "name": "👤 Movimiento",
-                            "movement_type": "🔘 Tipo",
-                            "source_name": "💳 Fuente",
-                            "source_type": "🌀 Tipo",
-                            "category": "🏷️ Categoría",
-                            "amount": "💲 Cantidad"
-                        },
-                        hide_index=True
-                    )
-
-                    if not st.session_state.movement_accepted:
-                        if st.button("Accept", type='primary', icon="👍"):
-                            movement = Movement(**message["message"])
-                            movement = asyncio.run(validate_or_add_category(movement, st.session_state.username))
-
-                            asyncio.run(insert_movement(movement, st.session_state.username))
-                            asyncio.run(update_source_balance(movement, st.session_state.username))
-
-                            st.session_state.movement_accepted = True
-                            st.toast("Movement accepted!", icon="👍")
-                            st.rerun()
-                else:
-                    st.write("Sorry, I can't help you with that.")
-        else:
-            chat_window.chat_message(message["user"], avatar=message["profile_picture"]).write(message["message"])
 
 def show_chat_window():
     chat_window = st.container()
