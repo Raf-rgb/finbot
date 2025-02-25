@@ -89,7 +89,7 @@ def show_history_page():
 
         st.text("📜 Movements")
         st.dataframe(
-            movements.drop(columns=["_id", "username"]),
+            movements.drop(columns=["_id", "username"]).sort_values(by="datetime", ascending=False),
             column_config= {
                 "datetime": "📅 Fecha y hora",
                 "name": "👤 Movimiento",
